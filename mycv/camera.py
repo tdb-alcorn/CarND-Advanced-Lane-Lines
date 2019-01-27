@@ -36,7 +36,6 @@ class Camera(object):
 
             if sizex == 0 or sizey == 0:
                 sizex, sizey = gray.shape[0:2]
-                print(sizex, sizey)
 
             if gray.shape[0] != sizex or gray.shape[1] != sizey:
                 print(idx)
@@ -62,8 +61,13 @@ class Camera(object):
             idx += 1
 
         imgpoints = np.array([corner.reshape(-1) for corner in corners], dtype=np.float32)
+        dim_imgpoint = imgpoints.shape[1]
+        imgpoints = imgpoints.reshape([len(images), -1, dim_imgpoint])
 
         objpoints = generate_object_points(sizex, sizey, nx, ny, offsetx=100, offsety=100)
+        num_objpoints, dim_objpoints = objpoints.shape[0:2]
+        objpoints = np.tile(objpoints, (len(images), 1))
+        objpoints = objpoints.reshape([len(images), num_objpoints, dim_objpoints])
 
         ret, mtx, distCoeffs, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, (sizey, sizex), None, None)
 
@@ -81,5 +85,5 @@ def generate_object_points(sizex:int, sizey:int, nx:int, ny:int, offsetx:int=0, 
     object_points = list()
     for y in range(ny):
         for x in range(nx):
-            object_points.append((offsetx + x*dx, offsety + y*dy))
+            object_points.append((offsetx + x*dx, offsety + y*dy, 0))
     return np.array(object_points, dtype=np.float32)
