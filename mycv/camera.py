@@ -1,4 +1,5 @@
 import os
+from collections import namedtuple
 from typing import List
 
 import cv2
@@ -12,6 +13,11 @@ class CalibrationError(Exception):
     pass
 
 
+CalibrationParameters = namedtuple('CalibrationParameters', ['image_dir', 'nx', 'ny'])
+
+default_calibration = CalibrationParameters('./camera_cal', 9, 6)
+
+
 class Camera(object):
     def __init__(self):
         self.camera_matrix = np.zeros((3, 3))
@@ -20,7 +26,7 @@ class Camera(object):
     def undistort(self, img:np.array) -> np.array:
         return cv2.undistort(img, self.camera_matrix, self.distortion_coeffs)
     
-    def calibrate(self, images:List[np.array], nx:int, ny:int, display:bool=False):
+    def calibrate(self, parameters:CalibrationParameters=default_calibration, display:bool=False):
         '''
         calibrate calibrates the camera given a set of chessboard images with a fixed number of chessboard corners to be detected.
 
@@ -28,6 +34,10 @@ class Camera(object):
         nx = number of x chessboard corners
         ny = number of y chessboard corners
         '''
+        images = image.read_dir(parameters.image_dir)
+        nx = parameters.nx
+        ny = parameters.ny
+
         sizex = 0
         sizey = 0
         corners = list()

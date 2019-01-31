@@ -24,9 +24,9 @@ def fit(x:np.array, y:np.array) -> Fit:
     return from_numpy(np.polyfit(x, y, 2))
 
 
-def compute(poly:Fit, x:np.array) -> np.array:
+def compute(fit:Fit, x:np.array) -> np.array:
     '''compute computes the y-values of the polynomial given the x-values'''
-    return poly.a * np.square(x) + poly.b * x + poly.c
+    return fit.a * np.square(x) + fit.b * x + fit.c
 
 
 def in_window(fit:Fit, x:np.array, y:np.array, margin:int):

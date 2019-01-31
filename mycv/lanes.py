@@ -13,10 +13,13 @@ class LaneDetector(object):
 
         self.minpix_poly = minpix_poly
     
-    def update(self, img:np.array):
+    def update(self, img:np.array) -> Tuple[np.array, np.array, np.array, np.array]:
         '''
         `minpix` is the minimum number of nonzero pixels that must be found in the
         search area for the search to succeed
+
+        update returns four arrays corresponding to the x and y coordinates of the points
+        in the left and right lanes respectively i.e. leftx, lefty, rightx, righty
         '''
         leftx, lefty, rightx, righty = poly_search(img, self.left, self.right, margin=100)
 
@@ -27,25 +30,47 @@ class LaneDetector(object):
         self.left = poly.fit(lefty, leftx)
         self.right = poly.fit(righty, rightx)
 
+        return leftx, lefty, rightx, righty
 
-def draw_lanes(img:np.array, left:poly.Fit, right:poly.Fit) -> np.array:
-    '''
-    draw_polyfit fills the area between two polynomial fits
-    
-    assumes img is a top-down perspective image
-    '''
-    out_img = image.like(img, num_channels=3)
-    # Generate x and y values for plotting
+
+
+def visualize(img:np.array,
+    left:poly.Fit, right:poly.Fit,
+    leftx:np.array, lefty:np.array, rightx:np.array, righty:np.array):
+    # Generate poly fits
     ploty = np.linspace(0, img.shape[0]-1, img.shape[0])
-
     left_fitx = poly.compute(left, ploty)
-    right_fitx = poly.compute(right, poly)
+    right_fitx = poly.compute(right, ploty)
 
-    # # Plots the left and right polynomials on the lane lines
-    # plt.plot(left_fitx, ploty, color='yellow')
-    # plt.plot(right_fitx, ploty, color='yellow')
+    # Create an image to draw on and an image to show the selection window
+    vis_img = np.zeros_like(img)
 
-    return out_img
+    # Color in left and right line pixels
+    vis_img[lefty, leftx] = [255, 0, 0]
+    vis_img[righty, rightx] = [0, 0, 255]
+
+    margin = 0  # TODO(tom) What is this for?
+    # Generate a polygon to illustrate the search window area
+    # And recast the x and y points into usable format for cv2.fillPoly()
+    # left_line_window1 = np.array([np.transpose(np.vstack([left_fitx-margin, ploty]))])
+    # left_line_window2 = np.array([np.flipud(np.transpose(np.vstack([left_fitx+margin, 
+    #                           ploty])))])
+    # left_line_pts = np.hstack((left_line_window1, left_line_window2))
+    # right_line_window1 = np.array([np.transpose(np.vstack([right_fitx-margin, ploty]))])
+    # right_line_window2 = np.array([np.flipud(np.transpose(np.vstack([right_fitx+margin, 
+    #                           ploty])))])
+    # right_line_pts = np.hstack((right_line_window1, right_line_window2))
+    left_line = np.array([np.transpose(np.vstack([left_fitx, ploty]))])
+    right_line = np.array([np.flipud(np.transpose(np.vstack([right_fitx, ploty])))])
+    pts = np.hstack((left_line, right_line))
+
+    # Draw the lane onto the warped blank image
+    # cv2.fillPoly(vis_img, np.int_([left_line_pts]), (0,255, 0))
+    # cv2.fillPoly(vis_img, np.int_([left_line_pts]), (0,255, 0))
+    cv2.fillPoly(vis_img, np.int_([pts]), (0,255, 0))
+
+    # Add the visualization to the original image
+    return vis_img
 
 
 def window_search(binary_warped:np.array, nwindows:int=9, margin:int=100, minpix:int=50):

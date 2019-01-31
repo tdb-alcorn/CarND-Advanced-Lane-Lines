@@ -14,18 +14,18 @@ def convert_to_hls(img:np.array, rgb:bool=False) -> np.array:
     return cv2.cvtColor(img, cv2.COLOR_RGB2HLS if rgb else cv2.COLOR_BGR2HLS)
 
 
-def read(filename:str, matplotlib:bool=False) -> np.array:
-    if matplotlib:
+def read(filename:str, rgb:bool=False) -> np.array:
+    if rgb:
         return plt.imread(filename)
     return cv2.imread(filename)
 
 
-def read_dir(directory:str) -> List[np.array]:
+def read_dir(directory:str, rgb:bool=False) -> List[np.array]:
     files = os.listdir(directory)
     images: List[np.array] = list()
     for f in files:
         try:
-            img = read(os.path.join(directory, f))
+            img = read(os.path.join(directory, f), rgb=rgb)
             if img is not None:
                 images.append(img)
         except Exception as e:
@@ -57,3 +57,8 @@ def like(img:np.array, num_channels:Optional[int]=None) -> np.array:
     if len(img.shape) > 2:
         raise Exception('image must be single channel to use num_channels option')
     return np.tile(img, (num_channels, 1, 1))
+
+
+def add(img1:np.array, img2:np.array,
+        alpha:float=1, beta:float=0.3, gamma:float=0) -> np.array:
+    return cv2.addWeighted(img1, alpha, img2, beta, gamma)

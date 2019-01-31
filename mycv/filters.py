@@ -60,12 +60,16 @@ def saturation(img:np.array, rgb:bool=False) -> np.array:
     return hls_img[:,:,2]
 
 
-def main(img:np.array, rgb:bool=False) -> np.array:
+def main(img:np.array, rgb:bool=False,
+        sobel_mag_min:int=20, sobel_mag_max:int=150,
+        sobel_dir_min:float=0.2, sobel_dir_max:float=1.571,
+        saturation_min:int=120, saturation_max:int=255) -> np.array:
     g = grayscale(img, rgb=rgb)
     sobel_mag, sobel_dir = sobel2D(g, kernel_size=3)
-    sobel_mask = threshold(sobel_mag, tmin=20, tmax=100) | threshold(sobel_dir, tmin=0.7, tmax=1.3)
+    sobel_mask = threshold(sobel_mag, tmin=sobel_mag_min, tmax=sobel_mag_max
+        ) & threshold(sobel_dir, tmin=sobel_dir_min, tmax=sobel_dir_max)
 
     s = saturation(img, rgb=rgb)
-    s_mask = threshold(s, tmin=170, tmax=255)
+    s_mask = threshold(s, tmin=saturation_min, tmax=saturation_max)
 
     return sobel_mask | s_mask
