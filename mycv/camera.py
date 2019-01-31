@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 
 from . import image
 
+
 class CalibrationError(Exception):
     pass
 
