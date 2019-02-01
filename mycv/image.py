@@ -1,5 +1,5 @@
 import os
-from typing import List, Optional
+from typing import List, Optional, Union, Tuple
 
 import cv2
 import numpy as np
@@ -20,17 +20,32 @@ def read(filename:str, rgb:bool=False) -> np.array:
     return cv2.imread(filename)
 
 
-def read_dir(directory:str, rgb:bool=False) -> List[np.array]:
+def write(img:np.array, filename:str, rgb:bool=False):
+    if rgb:
+        plt.imsave(filename, img)
+    cv2.imwrite(filename, img)
+
+
+def read_dir(directory:str,
+    rgb:bool=False,
+    filenames:bool=False) -> Union[List[np.array], List[Tuple[str, np.array]]]:
     files = os.listdir(directory)
     images: List[np.array] = list()
+    if filenames:
+        names: List[str] = list()
     for f in files:
         try:
-            img = read(os.path.join(directory, f), rgb=rgb)
+            name = os.path.join(directory, f)
+            img = read(name, rgb=rgb)
             if img is not None:
                 images.append(img)
+                if filenames:
+                    names.append(name)
         except Exception as e:
             print(e)
             continue
+    if filenames:
+        return list(zip(names, images))
     return images
 
 

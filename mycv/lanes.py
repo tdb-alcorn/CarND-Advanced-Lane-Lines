@@ -8,10 +8,12 @@ from . import poly, image
 
 class LaneDetector(object):
     def __init__(self, minpix_poly:int=200):
-        self.left: poly.Fit = poly.zero()
-        self.right: poly.Fit = poly.zero()
-
         self.minpix_poly = minpix_poly
+        self.reset()
+    
+    def reset(self):
+        self.left: poly.Fit = poly.constant(250)
+        self.right: poly.Fit = poly.constant(1050)
     
     def update(self, img:np.array) -> Tuple[np.array, np.array, np.array, np.array]:
         '''
@@ -31,6 +33,21 @@ class LaneDetector(object):
         self.right = poly.fit(righty, rightx)
 
         return leftx, lefty, rightx, righty
+    
+    def debug(self, img:np.array):
+        leftx, lefty, rightx, righty = poly_search(img, self.left, self.right, margin=100)
+        debug_img = img
+
+        if len(leftx) < self.minpix_poly or len(rightx) < self.minpix_poly:
+            print('window search')
+            leftx, lefty, rightx, righty, debug_img = window_search(img, nwindows=9, margin=100, minpix=50, debug=True)
+
+        # Fit new polynomials
+        self.left = poly.fit(lefty, leftx)
+        self.right = poly.fit(righty, rightx)
+
+        return leftx, lefty, rightx, righty, debug_img
+
 
 
 
@@ -45,35 +62,22 @@ def visualize(img:np.array,
     # Create an image to draw on and an image to show the selection window
     vis_img = np.zeros_like(img)
 
-    # Color in left and right line pixels
-    vis_img[lefty, leftx] = [255, 0, 0]
-    vis_img[righty, rightx] = [0, 0, 255]
-
-    margin = 0  # TODO(tom) What is this for?
     # Generate a polygon to illustrate the search window area
-    # And recast the x and y points into usable format for cv2.fillPoly()
-    # left_line_window1 = np.array([np.transpose(np.vstack([left_fitx-margin, ploty]))])
-    # left_line_window2 = np.array([np.flipud(np.transpose(np.vstack([left_fitx+margin, 
-    #                           ploty])))])
-    # left_line_pts = np.hstack((left_line_window1, left_line_window2))
-    # right_line_window1 = np.array([np.transpose(np.vstack([right_fitx-margin, ploty]))])
-    # right_line_window2 = np.array([np.flipud(np.transpose(np.vstack([right_fitx+margin, 
-    #                           ploty])))])
-    # right_line_pts = np.hstack((right_line_window1, right_line_window2))
     left_line = np.array([np.transpose(np.vstack([left_fitx, ploty]))])
     right_line = np.array([np.flipud(np.transpose(np.vstack([right_fitx, ploty])))])
     pts = np.hstack((left_line, right_line))
 
     # Draw the lane onto the warped blank image
-    # cv2.fillPoly(vis_img, np.int_([left_line_pts]), (0,255, 0))
-    # cv2.fillPoly(vis_img, np.int_([left_line_pts]), (0,255, 0))
     cv2.fillPoly(vis_img, np.int_([pts]), (0,255, 0))
 
-    # Add the visualization to the original image
+    # Color in left and right line pixels
+    vis_img[lefty, leftx] = [255, 0, 0]
+    vis_img[righty, rightx] = [0, 0, 255]
+
     return vis_img
 
 
-def window_search(binary_warped:np.array, nwindows:int=9, margin:int=100, minpix:int=50):
+def window_search(binary_warped:np.array, nwindows:int=9, margin:int=100, minpix:int=50, debug:bool=False):
     '''
     window_search takes a top-down image of a road and finds pixels
     corresponding to lane lines by performing a window-based search. It
@@ -88,6 +92,9 @@ def window_search(binary_warped:np.array, nwindows:int=9, margin:int=100, minpix
     '''
     # Take a histogram of the bottom half of the image
     histogram = np.sum(image.crop_to_bottom_half(binary_warped), axis=0)
+
+    if debug:
+        out_img = np.dstack((binary_warped, binary_warped, binary_warped))
 
     # Find the peak of the left and right halves of the histogram
     # These will be the starting point for the left and right lines
@@ -123,6 +130,13 @@ def window_search(binary_warped:np.array, nwindows:int=9, margin:int=100, minpix
         win_xright_low = rightx_current - margin  # Update this
         win_xright_high = rightx_current + margin  # Update this
         
+        # Draw the windows on the visualization image
+        if debug:
+            cv2.rectangle(out_img,(win_xleft_low,win_y_low),
+            (win_xleft_high,win_y_high),(0,255,0), 2) 
+            cv2.rectangle(out_img,(win_xright_low,win_y_low),
+            (win_xright_high,win_y_high),(0,255,0), 2)  
+
         ### TO-DO: Identify the nonzero pixels in x and y within the window ###
         in_window_left = np.zeros(nonzerox.shape, dtype=np.bool_)
         in_window_left[(nonzerox >= win_xleft_low) & (nonzerox < win_xleft_high) & (nonzeroy >= win_y_low) & (nonzeroy < win_y_high)] = True
@@ -145,6 +159,9 @@ def window_search(binary_warped:np.array, nwindows:int=9, margin:int=100, minpix
     # Extract left and right line pixel positions
     leftx, lefty = zip(*left_lane_inds)
     rightx, righty = zip(*right_lane_inds)
+ 
+    if debug:
+        return leftx, lefty, rightx, righty, out_img
 
     return leftx, lefty, rightx, righty
 

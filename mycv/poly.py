@@ -9,9 +9,9 @@ import numpy as np
 Fit = namedtuple('Fit', ['a', 'b', 'c'])
 
 
-def zero() -> Fit:
+def constant(c:float) -> Fit:
     '''zero returns the polynomial equal to 0 everywhere'''
-    return Fit(a=0, b=0, c=0)
+    return Fit(a=0, b=0, c=c)
 
 
 def from_numpy(fit:np.array) -> Fit:
