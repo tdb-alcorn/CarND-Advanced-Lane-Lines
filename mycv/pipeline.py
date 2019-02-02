@@ -16,6 +16,16 @@ class Pipeline(object):
         # Define conversions in x and y from pixels space to meters
         self.metres_per_pixel_y = 30/720 # meters per pixel in y dimension
         self.metres_per_pixel_x = 3.7/700 # meters per pixel in x dimension
+
+        # Filter parameters
+        self.filter_params = {
+            'sobel_mag_min': 50,
+            'sobel_mag_max': 150,
+            'sobel_dir_min': 0.4,
+            'sobel_dir_max': 0.8,
+            'saturation_min': 120,
+            'saturation_max': 255,
+        }
     
     def reset(self):
         self.lane_detector.reset()
@@ -61,7 +71,7 @@ class Pipeline(object):
         show(unwarped_vis)
         show(summed)
     
-    def step(self, img:np.array, display:bool=False) -> np.array:
+    def step(self, img:np.array, rgb:bool=False, display:bool=False) -> np.array:
         '''
         1. undistort image
         2. warp to birds eye perspective
@@ -73,7 +83,7 @@ class Pipeline(object):
         '''
         undistorted = self.camera.undistort(img)
         warped = warp.birds_eye.transform(undistorted)
-        filtered = filters.main(warped)
+        filtered = filters.main(warped, rgb=rgb, **self.filter_params)
         leftx, lefty, rightx, righty = self.lane_detector.update(filtered)
         vis, radius_of_curvature, lane_deviation = lanes.visualize(warped,
             self.lane_detector.left, self.lane_detector.right,

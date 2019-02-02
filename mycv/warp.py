@@ -16,8 +16,10 @@ class Warp(object):
         if len(mapping) != 4:
             raise ValueError('source-to-target mapping must contain exactly four points')
         image_points, object_points = zip(*mapping.items())
-        self.transform_matrix = cv2.getPerspectiveTransform(np.array(image_points, dtype=np.float32), np.array(object_points, dtype=np.float32))
-        self.inverse_transform_matrix = cv2.getPerspectiveTransform(np.array(object_points, dtype=np.float32), np.array(image_points, dtype=np.float32))
+        self.transform_matrix = cv2.getPerspectiveTransform(
+            np.array(image_points, dtype=np.float32), np.array(object_points, dtype=np.float32))
+        self.inverse_transform_matrix = cv2.getPerspectiveTransform(
+            np.array(object_points, dtype=np.float32), np.array(image_points, dtype=np.float32))
     
     def transform(self, img:np.array) -> np.array:
         return cv2.warpPerspective(img, self.transform_matrix,
@@ -30,8 +32,12 @@ class Warp(object):
 
 # _birds_eye_image_points = [(600.5522583218831, 446.8418731439211), (680.3359558530209, 446.8418731439211), (1040.9582686937638, 675.5551393998494), (265.46072869110424, 676.618922033598)]
 _birds_eye_image_points = [(603.2432092820274, 458.2994161111194), (683.4225895772826, 460.46642638936953), (1062.649388271057, 719.4241546402611), (248.93702878812962, 719.4241546402611)]
-_x_left = 265
-_x_right = 1063
+# x_left = 265
+# x_right = 1063
+x_left = 450
+x_right = 850
+_x_left = x_left
+_x_right = x_right
 _y_top = 0
 _y_bottom = 719
 _birds_eye_object_points = [(_x_left, _y_top), (_x_right, _y_top), (_x_right, _y_bottom), (_x_left, _y_bottom)]

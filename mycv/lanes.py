@@ -3,7 +3,7 @@ from typing import Tuple
 import cv2
 import numpy as np
 
-from . import poly, image
+from . import poly, image, warp
 
 
 class LaneDetector(object):
@@ -13,8 +13,8 @@ class LaneDetector(object):
         self.reset()
     
     def reset(self):
-        self.left: poly.Fit = poly.constant(250)
-        self.right: poly.Fit = poly.constant(1050)
+        self.left: poly.Fit = poly.constant(warp.x_left)
+        self.right: poly.Fit = poly.constant(warp.x_right)
     
     def update(self, img:np.array) -> Tuple[np.array, np.array, np.array, np.array]:
         '''
