@@ -21,6 +21,8 @@ def read(filename:str, rgb:bool=False) -> np.array:
 
 
 def write(img:np.array, filename:str, rgb:bool=False):
+    dirs = os.path.dirname(filename)
+    os.makedirs(dirs, exist_ok=True)
     if rgb:
         plt.imsave(filename, img)
     cv2.imwrite(filename, img)

@@ -99,14 +99,35 @@ class Pipeline(object):
 
 
 if __name__ == '__main__':
-    # main runs the pipeline on a video input file
+    # main runs the pipeline on a given input file
     import sys
-    input_file, video_file = sys.argv[1:3]
-    p = Pipeline()
-    p.run(input_file, video_file)
+    import os
 
-    # input_dir = sys.argv[1]
-    # images = image.read_dir(input_dir, filenames=True)
-    # for filename, img in images:
-    #     image.write(p.step(img), filename + '_out.jpg')
-    #     p.reset()
+    inp, out = sys.argv[1:3]
+    inp_basename = os.path.basename(inp)
+    inp_ext = ''
+    inp_basename_parts = inp_basename.split('.')
+    if len(inp_basename_parts) > 1:
+        inp_ext = inp_basename_parts[-1]
+
+    p = Pipeline()
+    
+    if os.path.isdir(inp):
+        # process a folder of images
+        input_dir, output_dir = inp, out
+        images = image.read_dir(input_dir, filenames=True)
+        for filename, img in images:
+            basename = os.path.basename(filename)
+            image.write(p.step(img), os.path.join(output_dir, basename))
+            p.reset()
+    elif inp_ext == 'mp4':
+        # process a video
+        input_file, video_file = inp, out
+        p.run(input_file, video_file)
+    elif inp_ext == 'jpg' or inp_ext == 'png':
+        # process a single image
+        img = image.read(inp)
+        image.write(p.step(img), out)
+    else:
+        print('Unknown input type: input must be either directory, mp4, or image file (jpg, png)')
+        print('Usage: python -m mycv.pipeline <input> <output>')
