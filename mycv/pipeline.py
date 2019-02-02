@@ -12,6 +12,10 @@ class Pipeline(object):
         self.camera = camera.Camera()
         self.camera.calibrate(parameters=calibration, display=False)
         self.lane_detector = lanes.LaneDetector()
+
+        # Define conversions in x and y from pixels space to meters
+        self.metres_per_pixel_y = 30/720 # meters per pixel in y dimension
+        self.metres_per_pixel_x = 3.7/700 # meters per pixel in x dimension
     
     def reset(self):
         self.lane_detector.reset()
@@ -33,6 +37,7 @@ class Pipeline(object):
         leftx, lefty, rightx, righty, debug_img = self.lane_detector.debug(filtered)
         vis = lanes.visualize(warped,
             self.lane_detector.left, self.lane_detector.right,
+            self.metres_per_pixel_x, self.metres_per_pixel_y,
             leftx, lefty, rightx, righty)
         unwarped_vis = warp.birds_eye.inverse_transform(vis)
         summed = image.add(undistorted, unwarped_vis)
@@ -70,11 +75,26 @@ class Pipeline(object):
         warped = warp.birds_eye.transform(undistorted)
         filtered = filters.main(warped)
         leftx, lefty, rightx, righty = self.lane_detector.update(filtered)
-        vis = lanes.visualize(warped,
+        vis, radius_of_curvature, lane_deviation = lanes.visualize(warped,
             self.lane_detector.left, self.lane_detector.right,
+            self.metres_per_pixel_x, self.metres_per_pixel_y,
             leftx, lefty, rightx, righty)
         unwarped_vis = warp.birds_eye.inverse_transform(vis)
         summed = image.add(undistorted, unwarped_vis)
+   
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        # Output radius of curvature
+        cv2.putText(summed, 'Radius of Curvature = %.2fm' % radius_of_curvature,
+            (50,100), font, 2, (255,255,255), 2, cv2.LINE_AA)
+
+        # Output lane deviation
+        deviation_msg = 'Vehicle is centered'
+        if lane_deviation < -0.1:
+            deviation_msg = 'Vehicle is %.2fm left of center' % abs(lane_deviation)
+        elif lane_deviation > 0.1:
+            deviation_msg = 'Vehicle is %.2fm right of center' % abs(lane_deviation)
+        cv2.putText(summed, deviation_msg,
+            (50,200), font, 2, (255,255,255), 2, cv2.LINE_AA)
 
         if display:
             import matplotlib.pyplot as plt

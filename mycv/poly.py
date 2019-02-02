@@ -38,9 +38,17 @@ def in_window(fit:Fit, x:np.array, y:np.array, margin:int):
     mask = (x >= window - margin) & (x < window + margin)
     return mask
 
-def curve(fit:Fit) -> Callable[[np.array], np.array]:
+
+def curvature(fit:Fit) -> Callable[[np.array], np.array]:
     '''
-    curve returns a function that computes the radius of curvature of a
+    curvature returns a function that computes the radius of curvature of a
     polynomial as a function of x
     '''
-    return lambda x: np.sqrt(((1 + (2 * fit.a * x + fit.B)**2)**3)/(4 * fit.A**2))
+    return lambda x: np.sqrt(((1 + (2 * fit.a * x + fit.b)**2)**3)/(4 * fit.a**2))
+
+
+def convert_units(fit:Fit, cx:float, cy:float) -> Fit:
+    a = fit.a*cy/cx**2
+    b = fit.b*cy/cx
+    c = fit.c*cy
+    return Fit(a=a, b=b, c=c)

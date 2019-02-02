@@ -9,6 +9,7 @@ from . import poly, image
 class LaneDetector(object):
     def __init__(self, minpix_poly:int=200):
         self.minpix_poly = minpix_poly
+
         self.reset()
     
     def reset(self):
@@ -53,7 +54,9 @@ class LaneDetector(object):
 
 def visualize(img:np.array,
     left:poly.Fit, right:poly.Fit,
-    leftx:np.array, lefty:np.array, rightx:np.array, righty:np.array):
+    metres_per_pixel_x:float, metres_per_pixel_y:float,
+    leftx:np.array, lefty:np.array, rightx:np.array, righty:np.array,
+    ) -> Tuple[np.array, float, float]:
     # Generate poly fits
     ploty = np.linspace(0, img.shape[0]-1, img.shape[0])
     left_fitx = poly.compute(left, ploty)
@@ -74,7 +77,22 @@ def visualize(img:np.array,
     vis_img[lefty, leftx] = [255, 0, 0]
     vis_img[righty, rightx] = [0, 0, 255]
 
-    return vis_img
+    # Compute radius of curvature
+    y_eval = np.max(ploty)*metres_per_pixel_y
+    left_m = poly.convert_units(left, metres_per_pixel_y, metres_per_pixel_x)
+    right_m = poly.convert_units(right, metres_per_pixel_y, metres_per_pixel_x)
+    left_rad = poly.curvature(left_m)(y_eval)
+    right_rad = poly.curvature(right_m)(y_eval)
+    avg_rad = (left_rad + right_rad)/2
+
+    # Compute lane deviation
+    left_x_eval = poly.compute(left_m, y_eval)
+    right_x_eval = poly.compute(right_m, y_eval)
+    lane_x = right_x_eval - left_x_eval
+    car_x = img.shape[1]/2*metres_per_pixel_x
+    lane_deviation = car_x - lane_x
+
+    return vis_img, avg_rad, lane_deviation
 
 
 def window_search(binary_warped:np.array, nwindows:int=9, margin:int=100, minpix:int=50, debug:bool=False):
