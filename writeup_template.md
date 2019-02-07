@@ -1,8 +1,4 @@
-## Writeup Template
-
-### You can use this file as a template for your writeup if you want to submit it as a markdown file, but feel free to use some other method and submit a pdf if you prefer.
-
----
+## Writeup
 
 **Advanced Lane Finding Project**
 
@@ -28,25 +24,11 @@ The goals / steps of this project are the following:
 [pipeline6]: ./output_images/pipeline_6.jpg "Final output"
 [undistort]: ./output_images/undistorted_calibration.jpg "Calibration"
 
-[image1]: ./examples/undistort_output.png "Undistorted"
-[image2]: ./test_images/test1.jpg "Road Transformed"
-[image3]: ./examples/binary_combo_example.jpg "Binary Example"
-[image4]: ./examples/warped_straight_lines.jpg "Warp Example"
-[image5]: ./examples/color_fit_lines.jpg "Fit Visual"
-[image6]: ./examples/example_output.jpg "Output"
-[video1]: ./project_video.mp4 "Video"
-
 ## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
 
 ### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
 
 ---
-
-### Writeup / README
-
-#### 1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.  You can submit your writeup as markdown or pdf.  [Here](https://github.com/udacity/CarND-Advanced-Lane-Lines/blob/master/writeup_template.md) is a template writeup for this project you can use as a guide and a starting point.  
-
-You're reading it!
 
 ### Camera Calibration
 
@@ -65,13 +47,13 @@ I then used the output `objpoints` and `imgpoints` to compute the camera calibra
 #### 1. Provide an example of a distortion-corrected image.
 
 To demonstrate this step, I will describe how I apply the distortion correction to one of the test images like this one:
-![alt text][pipeline_0]
+![alt text][pipeline0]
 
 #### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
 I used a combination of saturation and Sobel gradient thresholds to generate a binary image, which can be viewed in `mycv/filters.py`. I used Jupyter's interactive widgets to fine tune the values of the thresholds used, ultimately arriving at the values listed in `filters.py#main()`. Here's an example of my output for this step:
 
-![alt text][pipeline_2]
+![alt text][pipeline2]
 
 #### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
 
@@ -88,18 +70,18 @@ This resulted in the following source and destination points:
 
 I verified that my perspective transform was working as expected by drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image. Here is an example of a perspective transformed image:
 
-![alt text][pipeline_1]
+![alt text][pipeline1]
 
 #### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
 
 I used a combination of window search and polynomial searching to identify lane pixels, which can be seen in `mycv/lanes.py`. The lane detector first uses window search, and then subsequently uses polynomial search. It reverts back to window search if it cannot find enough lane pixels within the polynomial search area. Here is an example of the results of a window search:
 
-![alt text][pipeline_3]
+![alt text][pipeline3]
 
 Here is an example of the results of a polynomial search:
 
-![alt text][pipeline_4]
+![alt text][pipeline4]
 
 #### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
@@ -109,11 +91,11 @@ In `mycv/poly.py` I implemented `curvature()` and `convert_units()` functions th
 
 I implented `mycv/warp.py#inverse_transform()` which computes the inverse transform for a given transform. I then use this in `mycv/pipeline.py` to unwarp the output of the lane search method, like so:
 
-![alt text][pipeline_5]
+![alt text][pipeline5]
 
 I then sum this with the original image and draw the analysis output on top, as in:
 
-![alt text][pipeline_6]
+![alt text][pipeline6]
 
 ---
 
