@@ -15,6 +15,7 @@ class LaneDetector(object):
     def reset(self):
         self.left: poly.Fit = poly.constant(warp.x_left)
         self.right: poly.Fit = poly.constant(warp.x_right)
+        self.window_searched: bool = False
     
     def update(self, img:np.array) -> Tuple[np.array, np.array, np.array, np.array]:
         '''
@@ -26,8 +27,9 @@ class LaneDetector(object):
         '''
         leftx, lefty, rightx, righty = poly_search(img, self.left, self.right, margin=100)
 
-        if len(leftx) < self.minpix_poly or len(rightx) < self.minpix_poly:
+        if not self.window_searched or len(leftx) < self.minpix_poly or len(rightx) < self.minpix_poly:
             leftx, lefty, rightx, righty = window_search(img, nwindows=9, margin=100, minpix=50)
+            self.window_searched = True
 
         # Fit new polynomials
         self.left = poly.fit(lefty, leftx)
@@ -37,19 +39,17 @@ class LaneDetector(object):
     
     def debug(self, img:np.array):
         leftx, lefty, rightx, righty = poly_search(img, self.left, self.right, margin=100)
-        debug_img = img
+        debug_img = np.dstack((img, img, img))*255
 
-        if len(leftx) < self.minpix_poly or len(rightx) < self.minpix_poly:
-            print('window search')
+        if not self.window_searched or len(leftx) < self.minpix_poly or len(rightx) < self.minpix_poly:
             leftx, lefty, rightx, righty, debug_img = window_search(img, nwindows=9, margin=100, minpix=50, debug=True)
+            self.window_searched = True
 
         # Fit new polynomials
         self.left = poly.fit(lefty, leftx)
         self.right = poly.fit(righty, rightx)
 
         return leftx, lefty, rightx, righty, debug_img
-
-
 
 
 def visualize(img:np.array,
@@ -112,13 +112,17 @@ def window_search(binary_warped:np.array, nwindows:int=9, margin:int=100, minpix
     histogram = np.sum(image.crop_to_bottom_half(binary_warped), axis=0)
 
     if debug:
-        out_img = np.dstack((binary_warped, binary_warped, binary_warped))
+        out_img = np.dstack((binary_warped, binary_warped, binary_warped)) * 255
 
     # Find the peak of the left and right halves of the histogram
     # These will be the starting point for the left and right lines
     midpoint = np.int(histogram.shape[0]//2)
     leftx_base = np.argmax(histogram[:midpoint])
     rightx_base = np.argmax(histogram[midpoint:]) + midpoint
+    if abs(leftx_base - warp.x_left) >= 200:
+        leftx_base = warp.x_left
+    if abs(rightx_base - warp.x_right) >= 200:
+        rightx_base = warp.x_right
 
     # Set height of windows - based on nwindows above and image shape
     window_height = np.int(binary_warped.shape[0]//nwindows)
@@ -150,10 +154,10 @@ def window_search(binary_warped:np.array, nwindows:int=9, margin:int=100, minpix
         
         # Draw the windows on the visualization image
         if debug:
-            cv2.rectangle(out_img,(win_xleft_low,win_y_low),
-            (win_xleft_high,win_y_high),(0,255,0), 2) 
-            cv2.rectangle(out_img,(win_xright_low,win_y_low),
-            (win_xright_high,win_y_high),(0,255,0), 2)  
+            cv2.rectangle(out_img, (win_xleft_low,win_y_low),
+                (win_xleft_high,win_y_high), (0,255,0), 2) 
+            cv2.rectangle(out_img, (win_xright_low,win_y_low),
+                (win_xright_high,win_y_high), (0,255,0), 2)  
 
         ### TO-DO: Identify the nonzero pixels in x and y within the window ###
         in_window_left = np.zeros(nonzerox.shape, dtype=np.bool_)
@@ -188,7 +192,8 @@ def poly_search(
     img:np.array,
     left_fit:poly.Fit,
     right_fit:poly.Fit,
-    margin:int=100) -> Tuple[bool, poly.Fit, poly.Fit]:
+    margin:int=100,
+    debug:bool=False) -> Tuple[bool, poly.Fit, poly.Fit]:
     '''
     poly_search takes a top-down image of the road and finds pixels
     corresponding to lanes using a polynomial-based search. Given the

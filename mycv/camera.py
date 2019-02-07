@@ -98,3 +98,15 @@ def generate_object_points(sizex:int, sizey:int, nx:int, ny:int, offsetx:int=0, 
         for x in range(nx):
             object_points.append((offsetx + x*dx, offsety + y*dy, 0))
     return np.array(object_points, dtype=np.float32)
+
+
+
+if __name__ == '__main__':
+    import sys
+
+    img_file = sys.argv[1]
+    c = Camera()
+    c.calibrate()
+    img = image.read(img_file)
+    undistorted = c.undistort(img)
+    image.write(undistorted, 'output_images/undistorted_calibration.jpg')

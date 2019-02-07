@@ -6,6 +6,9 @@ import cv2
 
 from . import camera, image, warp, filters, lanes
 
+_metres_per_pixel_y = 30/720
+_metres_per_pixel_x = 3.7/700
+
 
 class Pipeline(object):
     def __init__(self, calibration:camera.CalibrationParameters=camera.default_calibration):
@@ -14,8 +17,8 @@ class Pipeline(object):
         self.lane_detector = lanes.LaneDetector()
 
         # Define conversions in x and y from pixels space to meters
-        self.metres_per_pixel_y = 30/720 # meters per pixel in y dimension
-        self.metres_per_pixel_x = 3.7/700 # meters per pixel in x dimension
+        self.metres_per_pixel_y = _metres_per_pixel_y # meters per pixel in y dimension
+        self.metres_per_pixel_x = _metres_per_pixel_x # meters per pixel in x dimension
 
         # Filter parameters
         self.filter_params = {
@@ -43,33 +46,54 @@ class Pipeline(object):
     def debug(self, img:np.array) -> np.array:
         undistorted = self.camera.undistort(img)
         warped = warp.birds_eye.transform(undistorted)
-        filtered = filters.main(warped)
+        filtered = filters.main(warped, **self.filter_params)
         leftx, lefty, rightx, righty, debug_img = self.lane_detector.debug(filtered)
-        vis = lanes.visualize(warped,
+        vis, radius_of_curvature, lane_deviation = lanes.visualize(warped,
             self.lane_detector.left, self.lane_detector.right,
             self.metres_per_pixel_x, self.metres_per_pixel_y,
             leftx, lefty, rightx, righty)
         unwarped_vis = warp.birds_eye.inverse_transform(vis)
         summed = image.add(undistorted, unwarped_vis)
+   
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        # Output radius of curvature
+        cv2.putText(summed, 'Radius of Curvature = %.2fm' % radius_of_curvature,
+            (50,100), font, 2, (255,255,255), 2, cv2.LINE_AA)
 
-        import matplotlib.pyplot as plt
+        # Output lane deviation
+        deviation_msg = 'Vehicle is centered'
+        if lane_deviation < -0.1:
+            deviation_msg = 'Vehicle is %.2fm left of center' % abs(lane_deviation)
+        elif lane_deviation > 0.1:
+            deviation_msg = 'Vehicle is %.2fm right of center' % abs(lane_deviation)
+        cv2.putText(summed, deviation_msg,
+            (50,200), font, 2, (255,255,255), 2, cv2.LINE_AA)
 
-        n_show = 7
-        _fig, axes = plt.subplots(n_show, 1, figsize=(15, 8*n_show))
+        # import matplotlib.pyplot as plt
+
+        # n_show = 7
+        # _fig, axes = plt.subplots(n_show, 1, figsize=(15, 8*n_show))
         ctr = 0
+
+        # def show(img):
+        #     nonlocal ctr
+        #     axes[ctr].imshow(img)
+        #     ctr += 1
 
         def show(img):
             nonlocal ctr
-            axes[ctr].imshow(img)
+            image.write(img, 'output_images/pipeline_%d.jpg' % ctr)
             ctr += 1
 
         show(undistorted)
         show(warped)
-        show(filtered)
+        show(filtered*255)
         show(debug_img)
         show(vis)
         show(unwarped_vis)
         show(summed)
+
+        return summed
     
     def step(self, img:np.array, rgb:bool=False, display:bool=False) -> np.array:
         '''
@@ -129,6 +153,14 @@ class Pipeline(object):
 
 
 if __name__ == '__main__':
+    import sys
+    inp = sys.argv[1]
+    p = Pipeline()
+    img = image.read(inp)
+    p.debug(img)
+    # main()
+
+def main():
     # main runs the pipeline on a given input file
     import sys
     import os
