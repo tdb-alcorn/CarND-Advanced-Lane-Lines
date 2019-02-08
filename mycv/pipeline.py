@@ -40,7 +40,8 @@ class Pipeline(object):
         # out = p.step(img)
         # image.write(out, 'output.jpg', rgb=True)
 
-        processed_clip = clip.fl_image(self.step).subclip(0, 5)
+        #.subclip(0,5)
+        processed_clip = clip.fl_image(self.step)
         processed_clip.write_videofile(output_file, audio=False)
     
     def debug(self, img:np.array) -> np.array:
@@ -152,14 +153,6 @@ class Pipeline(object):
         return summed
 
 
-if __name__ == '__main__':
-    import sys
-    inp = sys.argv[1]
-    p = Pipeline()
-    img = image.read(inp)
-    p.debug(img)
-    # main()
-
 def main():
     # main runs the pipeline on a given input file
     import sys
@@ -193,3 +186,12 @@ def main():
     else:
         print('Unknown input type: input must be either directory, mp4, or image file (jpg, png)')
         print('Usage: python -m mycv.pipeline <input> <output>')
+
+
+if __name__ == '__main__':
+    # import sys
+    # inp = sys.argv[1]
+    # p = Pipeline()
+    # img = image.read(inp)
+    # p.debug(img)
+    main()
