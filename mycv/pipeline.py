@@ -22,12 +22,14 @@ class Pipeline(object):
 
         # Filter parameters
         self.filter_params = {
-            'sobel_mag_min': 50,
-            'sobel_mag_max': 150,
-            'sobel_dir_min': 0.4,
-            'sobel_dir_max': 0.8,
+            'sobel_mag_min': 30,
+            'sobel_mag_max': 200,
+            'sobel_dir_min': 0.0,
+            'sobel_dir_max': 0.6,
             'saturation_min': 120,
             'saturation_max': 255,
+            'hue_min': 32,
+            'hue_max': 60,
         }
     
     def reset(self):
@@ -41,17 +43,18 @@ class Pipeline(object):
         # image.write(out, 'output.jpg', rgb=True)
 
         #.subclip(0,5)
-        clip = clip.subclip(23, 29)  # TODO remove this
+        # clip = clip.subclip(23, 29)  # TODO remove this
         # clip = clip.subclip(37, 43)  # TODO remove this
         processed_clip = clip.fl_image(self.step)
         processed_clip.write_videofile(output_file, audio=False)
     
     def debug(self, img:np.array) -> np.array:
         undistorted = self.camera.undistort(img)
-        warped = warp.birds_eye.transform(undistorted)
-        filtered = filters.main(warped, **self.filter_params)
-        leftx, lefty, rightx, righty, debug_img = self.lane_detector.debug(filtered)
-        vis, radius_of_curvature, lane_deviation = lanes.visualize(warped,
+        warped_unfiltered = warp.birds_eye.transform(undistorted)
+        filtered = filters.main(undistorted, **self.filter_params)
+        warped = warp.birds_eye.transform(filtered)
+        leftx, lefty, rightx, righty, debug_img = self.lane_detector.debug(warped)
+        vis, radius_of_curvature, lane_deviation = lanes.visualize(warped_unfiltered,
             self.lane_detector.left, self.lane_detector.right,
             self.metres_per_pixel_x, self.metres_per_pixel_y,
             leftx, lefty, rightx, righty)
@@ -109,10 +112,11 @@ class Pipeline(object):
         7. render text
         '''
         undistorted = self.camera.undistort(img)
-        warped = warp.birds_eye.transform(undistorted)
-        filtered = filters.main(warped, rgb=rgb, **self.filter_params)
-        leftx, lefty, rightx, righty = self.lane_detector.update(filtered)
-        vis, radius_of_curvature, lane_deviation = lanes.visualize(warped,
+        warped_unfiltered = warp.birds_eye.transform(undistorted)
+        filtered = filters.main(undistorted, rgb=rgb, **self.filter_params)
+        warped = warp.birds_eye.transform(filtered)
+        leftx, lefty, rightx, righty = self.lane_detector.update(warped)
+        vis, radius_of_curvature, lane_deviation = lanes.visualize(warped_unfiltered,
             self.lane_detector.left, self.lane_detector.right,
             self.metres_per_pixel_x, self.metres_per_pixel_y,
             leftx, lefty, rightx, righty)
@@ -140,14 +144,17 @@ class Pipeline(object):
             _fig, axes = plt.subplots(n_show, 1, figsize=(15, 8*n_show))
             ctr = 0
 
-            def show(img):
+            def show(img, cmap=None):
                 nonlocal ctr
-                axes[ctr].imshow(img)
+                if cmap is not None:
+                    axes[ctr].imshow(img, cmap=cmap)
+                else:
+                    axes[ctr].imshow(img)
                 ctr += 1
 
             show(undistorted)
-            show(warped)
-            show(filtered)
+            show(filtered, cmap='gray')
+            show(warped, cmap='gray')
             show(vis)
             show(unwarped_vis)
             show(summed)

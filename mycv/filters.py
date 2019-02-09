@@ -97,17 +97,20 @@ def histogram_equalization(img:np.array) -> np.array:
 def main(img:np.array, rgb:bool=False,
         sobel_mag_min:int=30, sobel_mag_max:int=200,
         sobel_dir_min:float=0.5, sobel_dir_max:float=1.571,
-        saturation_min:int=15, saturation_max:int=60) -> np.array:
+        saturation_min:int=120, saturation_max:int=255,
+        hue_min:int=32, hue_max:int=60,
+        ) -> np.array:
+    # print(sobel_mag_min, sobel_mag_max, sobel_dir_min, sobel_dir_max, saturation_min, saturation_max)
     g = grayscale(img, rgb=rgb)
     sobel_mag, sobel_dir = sobel2D(g, kernel_size=3)
     sobel_mask = threshold(sobel_mag, tmin=sobel_mag_min, tmax=sobel_mag_max
         ) & threshold(sobel_dir, tmin=sobel_dir_min, tmax=sobel_dir_max)
 
-    # s = saturation(img, rgb=rgb)
-    # s_mask = threshold(s, tmin=saturation_min, tmax=saturation_max)
+    s = saturation(img, rgb=rgb)
+    s_mask = threshold(s, tmin=saturation_min, tmax=saturation_max)
 
     h = hue(img, rgb=rgb)
-    h_mask = threshold(h, tmin=saturation_min, tmax=saturation_max)
+    h_mask = threshold(h, tmin=hue_min, tmax=hue_max)
 
     # r = red(img, rgb=rgb)
     # r_mask = threshold(r, tmin=100, tmax=200)
@@ -116,4 +119,4 @@ def main(img:np.array, rgb:bool=False,
     # g_mask = threshold(r, tmin=100, tmax=200)
 
     # return h_mask
-    return sobel_mask | h_mask
+    return sobel_mask | h_mask | s_mask

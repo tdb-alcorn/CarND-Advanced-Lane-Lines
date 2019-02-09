@@ -37,6 +37,7 @@ class LaneDetector(object):
         if (not self.window_searched
             or len(leftx) < self.minpix_poly
             or len(rightx) < self.minpix_poly
+        # ):
             or curvature_ratio <= 0.95
             or curvature_ratio >= 1.05):
             leftx, lefty, rightx, righty = window_search(img, nwindows=9, margin=100, minpix=50)
@@ -45,6 +46,13 @@ class LaneDetector(object):
         # Fit new polynomials
         self.left = poly.fit(lefty, leftx)
         self.right = poly.fit(righty, rightx)
+
+        y_eval = img.shape[0]
+        curvature_ratio = poly.curvature(self.left)(y_eval)/poly.curvature(self.right)(y_eval)
+
+        if curvature_ratio <= 0.95 or curvature_ratio >= 1.05:
+            self.left = poly.mix_curvatures(self.left, self.right, 0.95)
+            self.right = poly.mix_curvatures(self.right, self.left, 0.95)
 
         return leftx, lefty, rightx, righty
     

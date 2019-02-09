@@ -29,6 +29,16 @@ def compute(fit:Fit, x:np.array) -> np.array:
     return fit.a * np.square(x) + fit.b * x + fit.c
 
 
+def mix(a:float, b:float, k:float) -> float:
+    '''k must be between 0 and 1'''
+    return a * k + b * (1-k)
+
+
+def mix_curvatures(this:Fit, other:Fit, c:float) -> np.array:
+    '''c must be between 0 and 1'''
+    return Fit(a=mix(this.a, other.a, c), b=mix(this.b, other.b, c), c=this.c)
+
+
 def in_window(fit:Fit, x:np.array, y:np.array, margin:int):
     '''
     returns a mask of the x-array set to 1 where x is within the window
