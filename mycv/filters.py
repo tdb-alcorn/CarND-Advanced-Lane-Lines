@@ -60,16 +60,60 @@ def saturation(img:np.array, rgb:bool=False) -> np.array:
     return hls_img[:,:,2]
 
 
+def hue(img:np.array, rgb:bool=False) -> np.array:
+    hls_img = image.convert_to_hls(img, rgb=rgb)
+    return histogram_equalization(hls_img[:,:,0])
+
+
+def red(img:np.array, rgb:bool=False) -> np.array:
+    if rgb:
+        return img[:,:,0]
+    return img[:,:,2]
+
+
+def green(img:np.array, rgb:bool=False) -> np.array:
+    return img[:,:,1]
+
+
+def blue(img:np.array, rgb:bool=False) -> np.array:
+    if rgb:
+        return img[:,:,2]
+    return img[:,:,0]
+
+
+def histogram_equalization(img:np.array) -> np.array:
+    '''
+    assumes a single channel image
+    '''
+    return cv2.equalizeHist(img)
+    # hist, _ = np.histogram(img, bins=256, range=(0, 255))
+    # cdf = np.cumsum(hist)
+    # cdfmin = np.min(cdf)
+    # size = img.shape[0]*img.shape[1]
+    # h = np.vectorize(lambda v: np.round((cdf[v]-cdfmin)/(size-cdfmin)*255))
+    # return h(img)
+
+
 def main(img:np.array, rgb:bool=False,
-        sobel_mag_min:int=20, sobel_mag_max:int=150,
-        sobel_dir_min:float=0.2, sobel_dir_max:float=1.571,
-        saturation_min:int=120, saturation_max:int=255) -> np.array:
+        sobel_mag_min:int=30, sobel_mag_max:int=200,
+        sobel_dir_min:float=0.5, sobel_dir_max:float=1.571,
+        saturation_min:int=15, saturation_max:int=60) -> np.array:
     g = grayscale(img, rgb=rgb)
     sobel_mag, sobel_dir = sobel2D(g, kernel_size=3)
     sobel_mask = threshold(sobel_mag, tmin=sobel_mag_min, tmax=sobel_mag_max
         ) & threshold(sobel_dir, tmin=sobel_dir_min, tmax=sobel_dir_max)
 
-    s = saturation(img, rgb=rgb)
-    s_mask = threshold(s, tmin=saturation_min, tmax=saturation_max)
+    # s = saturation(img, rgb=rgb)
+    # s_mask = threshold(s, tmin=saturation_min, tmax=saturation_max)
 
-    return sobel_mask | s_mask
+    h = hue(img, rgb=rgb)
+    h_mask = threshold(h, tmin=saturation_min, tmax=saturation_max)
+
+    # r = red(img, rgb=rgb)
+    # r_mask = threshold(r, tmin=100, tmax=200)
+
+    # g = green(img, rgb=rgb)
+    # g_mask = threshold(r, tmin=100, tmax=200)
+
+    # return h_mask
+    return sobel_mask | h_mask

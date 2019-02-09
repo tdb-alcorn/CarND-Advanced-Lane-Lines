@@ -41,6 +41,8 @@ class Pipeline(object):
         # image.write(out, 'output.jpg', rgb=True)
 
         #.subclip(0,5)
+        clip = clip.subclip(23, 29)  # TODO remove this
+        # clip = clip.subclip(37, 43)  # TODO remove this
         processed_clip = clip.fl_image(self.step)
         processed_clip.write_videofile(output_file, audio=False)
     
@@ -63,9 +65,9 @@ class Pipeline(object):
 
         # Output lane deviation
         deviation_msg = 'Vehicle is centered'
-        if lane_deviation < -0.1:
+        if lane_deviation < -0.01:
             deviation_msg = 'Vehicle is %.2fm left of center' % abs(lane_deviation)
-        elif lane_deviation > 0.1:
+        elif lane_deviation > 0.01:
             deviation_msg = 'Vehicle is %.2fm right of center' % abs(lane_deviation)
         cv2.putText(summed, deviation_msg,
             (50,200), font, 2, (255,255,255), 2, cv2.LINE_AA)

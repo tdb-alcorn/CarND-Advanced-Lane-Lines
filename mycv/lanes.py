@@ -27,7 +27,18 @@ class LaneDetector(object):
         '''
         leftx, lefty, rightx, righty = poly_search(img, self.left, self.right, margin=100)
 
-        if not self.window_searched or len(leftx) < self.minpix_poly or len(rightx) < self.minpix_poly:
+        # Fit new polynomials
+        self.left = poly.fit(lefty, leftx)
+        self.right = poly.fit(righty, rightx)
+
+        y_eval = img.shape[0]
+        curvature_ratio = poly.curvature(self.left)(y_eval)/poly.curvature(self.right)(y_eval)
+
+        if (not self.window_searched
+            or len(leftx) < self.minpix_poly
+            or len(rightx) < self.minpix_poly
+            or curvature_ratio <= 0.95
+            or curvature_ratio >= 1.05):
             leftx, lefty, rightx, righty = window_search(img, nwindows=9, margin=100, minpix=50)
             self.window_searched = True
 
@@ -88,7 +99,7 @@ def visualize(img:np.array,
     # Compute lane deviation
     left_x_eval = poly.compute(left_m, y_eval)
     right_x_eval = poly.compute(right_m, y_eval)
-    lane_x = right_x_eval - left_x_eval
+    lane_x = (right_x_eval + left_x_eval)/2
     car_x = img.shape[1]/2*metres_per_pixel_x
     lane_deviation = car_x - lane_x
 
@@ -119,9 +130,9 @@ def window_search(binary_warped:np.array, nwindows:int=9, margin:int=100, minpix
     midpoint = np.int(histogram.shape[0]//2)
     leftx_base = np.argmax(histogram[:midpoint])
     rightx_base = np.argmax(histogram[midpoint:]) + midpoint
-    if abs(leftx_base - warp.x_left) >= 200:
+    if abs(leftx_base - warp.x_left) >= 100:
         leftx_base = warp.x_left
-    if abs(rightx_base - warp.x_right) >= 200:
+    if abs(rightx_base - warp.x_right) >= 100:
         rightx_base = warp.x_right
 
     # Set height of windows - based on nwindows above and image shape
