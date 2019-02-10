@@ -28,13 +28,14 @@ class Camera(object):
     
     def calibrate(self, parameters:CalibrationParameters=default_calibration, display:bool=False):
         '''
-        calibrate calibrates the camera given a set of chessboard images with a fixed number of chessboard corners to be detected.
+        calibrate calibrates the camera given a set of chessboard images with
+        a fixed number of chessboard corners to be detected.
 
         images = list of chessboard images
         nx = number of x chessboard corners
         ny = number of y chessboard corners
         '''
-        images = image.read_dir(parameters.image_dir)
+        images = image.read_dir(parameters.image_dir, filenames=True)
         nx = parameters.nx
         ny = parameters.ny
 
@@ -42,26 +43,23 @@ class Camera(object):
         sizey = 0
         corners = list()
         idx = 0
-        for img in images:
+        for filename, img in images:
             gray = image.convert_to_gray(img)
 
             if sizex == 0 or sizey == 0:
-                sizex, sizey = gray.shape[0:2]
+                sizey, sizex = gray.shape[0:2]
 
-            if gray.shape[0] != sizex or gray.shape[1] != sizey:
+            if gray.shape[0] != sizey or gray.shape[1] != sizex:
                 print(idx)
-                raise CalibrationError('all calibration images must be the same size. expected: (%d, %d) got: (%d, %d)' % (sizex, sizey, gray.shape[0], gray.shape[1]))
-            
-            # do some thresholding to help cv2 find chessboard corners
-            # dark_pixels = gray < 100
-            # gray[dark_pixels] = 0
-            # gray[~dark_pixels] = 255
-            # image.show(gray, gray=True)
+                raise CalibrationError(
+                    'all calibration images must be the same size. In %s expected: (%d, %d) got: (%d, %d)' % (
+                        filename, sizey, sizex, gray.shape[0], gray.shape[1]))
 
             ret, img_corners = cv2.findChessboardCorners(gray, (nx, ny), None)
             if not ret:
                 image.show(img)
-                raise CalibrationError('failed to find chessboard corners in given image')
+                raise CalibrationError(
+                    'failed to find chessboard corners: %s' % filename)
             corners.extend(img_corners)
 
             # Draw and display the corners
@@ -80,23 +78,27 @@ class Camera(object):
         objpoints = np.tile(objpoints, (len(images), 1))
         objpoints = objpoints.reshape([len(images), num_objpoints, dim_objpoints])
 
-        ret, mtx, distCoeffs, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, (sizey, sizex), None, None)
+        ret, mtx, distCoeffs, rvecs, tvecs = cv2.calibrateCamera(
+            objpoints, imgpoints, (sizey, sizex), None, None)
 
         if not ret:
-            raise CalibrationError('failed to get camera matrix and/or distortion coefficients')
+            raise CalibrationError(
+                'failed to get camera matrix and/or distortion coefficients: %s' % filename)
 
         _, _ = rvecs, tvecs
         self.camera_matrix = mtx
         self.distortion_coeffs = distCoeffs
 
 
-def generate_object_points(sizex:int, sizey:int, nx:int, ny:int, offsetx:int=0, offsety:int=0) -> np.array:
+def generate_object_points(sizex:int, sizey:int,
+    nx:int, ny:int, offsetx:int=0, offsety:int=0) -> np.array:
     dx = (sizex - 2*offsetx)/nx
     dy = (sizey - 2*offsety)/ny
     object_points = list()
     for y in range(ny):
         for x in range(nx):
-            object_points.append((offsetx + x*dx, offsety + y*dy, 0))
+            # object_points.append((offsetx + x*dx, offsety + y*dy, 0))
+            object_points.append((offsety + y*dy, offsetx + x*dx, 0))
     return np.array(object_points, dtype=np.float32)
 
 

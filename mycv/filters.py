@@ -99,6 +99,9 @@ def main(img:np.array, rgb:bool=False,
         sobel_dir_min:float=0.5, sobel_dir_max:float=1.571,
         saturation_min:int=120, saturation_max:int=255,
         hue_min:int=32, hue_max:int=60,
+        hue_saturation_min:int=120, hue_saturation_max:int=255,
+        red_min:int=120, red_max:int=255,
+        green_min:int=120, green_max:int=255,
         ) -> np.array:
     # print(sobel_mag_min, sobel_mag_max, sobel_dir_min, sobel_dir_max, saturation_min, saturation_max)
     g = grayscale(img, rgb=rgb)
@@ -110,13 +113,32 @@ def main(img:np.array, rgb:bool=False,
     s_mask = threshold(s, tmin=saturation_min, tmax=saturation_max)
 
     h = hue(img, rgb=rgb)
-    h_mask = threshold(h, tmin=hue_min, tmax=hue_max)
+    hue_pre_mask = threshold(h, tmin=hue_min, tmax=hue_max)
 
-    # r = red(img, rgb=rgb)
-    # r_mask = threshold(r, tmin=100, tmax=200)
+    hue_sat_mask = threshold(s, tmin=hue_saturation_min, tmax=hue_saturation_max)
+    h_mask = hue_pre_mask & hue_sat_mask
 
-    # g = green(img, rgb=rgb)
-    # g_mask = threshold(r, tmin=100, tmax=200)
+    r = red(img, rgb=rgb)
+    r_mask = threshold(r, tmin=red_min, tmax=red_max)
 
-    # return h_mask
-    return sobel_mask | h_mask | s_mask
+    g = green(img, rgb=rgb)
+    g_mask = threshold(r, tmin=green_min, tmax=green_max)
+
+    return sobel_mask | h_mask | s_mask | r_mask | g_mask
+    # return sobel_mask | s_mask | r_mask | g_mask
+    # return sobel_mask | h_mask | r_mask
+
+
+
+if __name__ == '__main__':
+    import sys
+    import matplotlib.pyplot as plt
+
+    image_file = sys.argv[1]
+    img = image.read(image_file, rgb=True)
+    plt.imshow(img)
+    point = plt.ginput(1, show_clicks=True)[0]
+    print(point)
+    hls_img = image.convert_to_hls(img, rgb=True)
+    print(hls_img.shape)
+    print(hls_img[int(point[0])][int(point[1])])

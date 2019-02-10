@@ -1,4 +1,4 @@
-from typing import Callable, Any
+from typing import Callable, Any, List
 from collections import namedtuple
 
 import numpy as np
@@ -17,6 +17,10 @@ def constant(c:float) -> Fit:
 def from_numpy(fit:np.array) -> Fit:
     '''from_numpy converts the result of np.polyfit() to a Fit'''
     return Fit(a=fit[0], b=fit[1], c=fit[2])
+
+
+def to_numpy(fit:Fit) -> np.array:
+    return np.array([fit.a, fit.b, fit.c])
 
 
 def fit(x:np.array, y:np.array) -> Fit:
@@ -54,7 +58,13 @@ def curvature(fit:Fit) -> Callable[[np.array], np.array]:
     curvature returns a function that computes the radius of curvature of a
     polynomial as a function of x
     '''
+    if fit.a == 0:
+        return lambda x: float('Inf')
     return lambda x: np.sqrt(((1 + (2 * fit.a * x + fit.b)**2)**3)/(4 * fit.a**2))
+
+
+def average(fits:List[Fit]) -> Fit:
+    return from_numpy(np.mean(np.array([to_numpy(fit) for fit in fits]), axis=0))
 
 
 def convert_units(fit:Fit, cx:float, cy:float) -> Fit:

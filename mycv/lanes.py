@@ -1,3 +1,5 @@
+from collections import deque
+
 from typing import Tuple
 
 import cv2
@@ -7,15 +9,20 @@ from . import poly, image, warp
 
 
 class LaneDetector(object):
-    def __init__(self, minpix_poly:int=200):
+    def __init__(self, minpix_poly:int=200, history:int=5):
         self.minpix_poly = minpix_poly
+        self.history = history
 
         self.reset()
     
     def reset(self):
         self.left: poly.Fit = poly.constant(warp.x_left)
         self.right: poly.Fit = poly.constant(warp.x_right)
+        
         self.window_searched: bool = False
+
+        self.left_history = deque([], self.history)
+        self.right_history = deque([], self.history)
     
     def update(self, img:np.array) -> Tuple[np.array, np.array, np.array, np.array]:
         '''
@@ -28,8 +35,15 @@ class LaneDetector(object):
         leftx, lefty, rightx, righty = poly_search(img, self.left, self.right, margin=100)
 
         # Fit new polynomials
-        self.left = poly.fit(lefty, leftx)
-        self.right = poly.fit(righty, rightx)
+        if len(leftx) < self.minpix_poly:
+            left = self.left
+        else:
+            left = poly.fit(lefty, leftx)
+
+        if len(rightx) < self.minpix_poly:
+            right = self.right
+        else:
+            right = poly.fit(righty, rightx)
 
         y_eval = img.shape[0]
         curvature_ratio = poly.curvature(self.left)(y_eval)/poly.curvature(self.right)(y_eval)
@@ -37,22 +51,34 @@ class LaneDetector(object):
         if (not self.window_searched
             or len(leftx) < self.minpix_poly
             or len(rightx) < self.minpix_poly
-        # ):
             or curvature_ratio <= 0.95
             or curvature_ratio >= 1.05):
             leftx, lefty, rightx, righty = window_search(img, nwindows=9, margin=100, minpix=50)
             self.window_searched = True
 
         # Fit new polynomials
-        self.left = poly.fit(lefty, leftx)
-        self.right = poly.fit(righty, rightx)
+        if len(leftx) < self.minpix_poly:
+            left = self.left
+        else:
+            left = poly.fit(lefty, leftx)
+
+        if len(rightx) < self.minpix_poly:
+            right = self.right
+        else:
+            right = poly.fit(righty, rightx)
 
         y_eval = img.shape[0]
-        curvature_ratio = poly.curvature(self.left)(y_eval)/poly.curvature(self.right)(y_eval)
+        curvature_ratio = poly.curvature(left)(y_eval) / poly.curvature(right)(y_eval)
 
         if curvature_ratio <= 0.95 or curvature_ratio >= 1.05:
-            self.left = poly.mix_curvatures(self.left, self.right, 0.95)
-            self.right = poly.mix_curvatures(self.right, self.left, 0.95)
+            left = poly.mix_curvatures(left, right, 0.95)
+            right = poly.mix_curvatures(right, left, 0.95)
+
+        self.left_history.append(left)
+        self.right_history.append(right)
+
+        self.left = poly.average(list(self.left_history))
+        self.right = poly.average(list(self.right_history))
 
         return leftx, lefty, rightx, righty
     
@@ -198,8 +224,15 @@ def window_search(binary_warped:np.array, nwindows:int=9, margin:int=100, minpix
             rightx_current = np.round(np.mean(nonzerox[in_window_right])).astype(np.int32)
 
     # Extract left and right line pixel positions
-    leftx, lefty = zip(*left_lane_inds)
-    rightx, righty = zip(*right_lane_inds)
+    if len(left_lane_inds) == 0:
+        leftx, lefty = list(), list()
+    else:
+        leftx, lefty = zip(*left_lane_inds)
+    
+    if len(right_lane_inds) == 0:
+        rightx, righty = list(), list()
+    else:
+        rightx, righty = zip(*right_lane_inds)
  
     if debug:
         return leftx, lefty, rightx, righty, out_img
@@ -211,7 +244,7 @@ def poly_search(
     img:np.array,
     left_fit:poly.Fit,
     right_fit:poly.Fit,
-    margin:int=100,
+    margin:int=50,
     debug:bool=False) -> Tuple[bool, poly.Fit, poly.Fit]:
     '''
     poly_search takes a top-down image of the road and finds pixels

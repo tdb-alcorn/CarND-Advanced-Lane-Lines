@@ -9,6 +9,33 @@ from . import camera, image, warp, filters, lanes
 _metres_per_pixel_y = 30/720
 _metres_per_pixel_x = 3.7/700
 
+Parameter = namedtuple('Parameter', ['value', 'min', 'max', 'type'])
+
+def make_slider(param:Parameter):
+    from ipywidgets import IntSlider, FloatSlider, Layout
+    if param.type is int:
+        return IntSlider(value=param.value, min=param.min, max=param.max, layout=Layout(width='100%'))
+    elif param.type is float:
+        return FloatSlider(value=param.value, min=param.min, max=param.max, layout=Layout(width='100%'))
+    return ValueError('Unknown parameter type %s in %s' % (param.type, param))
+
+# Filter parameters
+filter_params = {
+    'sobel_mag_min': Parameter(90, 0, 255, int),
+    'sobel_mag_max': Parameter(200, 0, 255, int),
+    'sobel_dir_min': Parameter(0.7, 0, np.pi/2, float),
+    'sobel_dir_max': Parameter(1.5, 0, np.pi/2, float),
+    'saturation_min': Parameter(240, 0, 255, int),
+    'saturation_max': Parameter(255, 0, 255, int),
+    'hue_min': Parameter(20, 0, 255, int),
+    'hue_max': Parameter(130, 0, 255, int),
+    'hue_saturation_min': Parameter(120, 0, 255, int),
+    'hue_saturation_max': Parameter(255, 0, 255, int),
+    'red_min': Parameter(220, 0, 255, int),
+    'red_max': Parameter(255, 0, 255, int),
+    'green_min': Parameter(220, 0, 255, int),
+    'green_max': Parameter(255, 0, 255, int),
+}
 
 class Pipeline(object):
     def __init__(self, calibration:camera.CalibrationParameters=camera.default_calibration):
@@ -21,16 +48,7 @@ class Pipeline(object):
         self.metres_per_pixel_x = _metres_per_pixel_x # meters per pixel in x dimension
 
         # Filter parameters
-        self.filter_params = {
-            'sobel_mag_min': 30,
-            'sobel_mag_max': 200,
-            'sobel_dir_min': 0.0,
-            'sobel_dir_max': 0.6,
-            'saturation_min': 120,
-            'saturation_max': 255,
-            'hue_min': 32,
-            'hue_max': 60,
-        }
+        self.filter_params = dict([(p, filter_params[p].value) for p in filter_params])
     
     def reset(self):
         self.lane_detector.reset()
@@ -43,9 +61,9 @@ class Pipeline(object):
         # image.write(out, 'output.jpg', rgb=True)
 
         #.subclip(0,5)
-        # clip = clip.subclip(23, 29)  # TODO remove this
+        # clip = clip.subclip(21, 27)  # TODO remove this
         # clip = clip.subclip(37, 43)  # TODO remove this
-        processed_clip = clip.fl_image(self.step)
+        processed_clip = clip.fl_image(lambda frame: self.step(frame, rgb=True))
         processed_clip.write_videofile(output_file, audio=False)
     
     def debug(self, img:np.array) -> np.array:
@@ -114,6 +132,8 @@ class Pipeline(object):
         undistorted = self.camera.undistort(img)
         warped_unfiltered = warp.birds_eye.transform(undistorted)
         filtered = filters.main(undistorted, rgb=rgb, **self.filter_params)
+        # filtered = filtered.astype(np.int32) * 255
+        # return np.stack([filtered, filtered, filtered], axis=-1)
         warped = warp.birds_eye.transform(filtered)
         leftx, lefty, rightx, righty = self.lane_detector.update(warped)
         vis, radius_of_curvature, lane_deviation = lanes.visualize(warped_unfiltered,
