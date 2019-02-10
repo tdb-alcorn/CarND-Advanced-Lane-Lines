@@ -51,7 +51,7 @@ To demonstrate this step, I will describe how I apply the distortion correction 
 
 #### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
-I used a combination of saturation, hue and Sobel gradient thresholds to generate a binary image, which can be viewed in `mycv/filters.py`. I used Jupyter's interactive widgets to fine tune the values of the thresholds used, ultimately arriving at the values listed in `filters.py#main()`. I also used histogram equalization to improve the contrast in the hue channel before thresholding. Here's an example of my output for this step:
+I used a combination of saturation, hue and Sobel gradient thresholds to generate a binary image, which can be viewed in `mycv/filters.py`. I used Jupyter's interactive widgets to fine tune the values of the thresholds used, ultimately arriving at the values listed in `filters.py#main()`. I also used histogram equalization to improve the contrast in the hue channel before thresholding. The hue channel is also post-filtered with a second saturation filter to help remove background noise. Here's an example of my output for this step:
 
 ![alt text][pipeline2]
 
